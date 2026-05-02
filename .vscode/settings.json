@@ -1,5 +1,2 @@
 {
-    "windowsaistudio.enableRemoteFine-tuningAndInference": true,
-    "inlineChat.enableV2": true,
-    "inlineChat.notebookAgent": true
 }

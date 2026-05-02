@@ -1,8 +1,11 @@
 import requests
-from bs4  import BeautifulSoup
+from bs4 import BeautifulSoup
 import json
 import os
+import time      # New: for delays
+import random    # New: for randomizing the wait
 from datetime import datetime
+from database import save_to_db
 
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
@@ -34,21 +37,39 @@ def parse_book(html):
     return books_data
 
 def main():
-    target_url = "http://books.toscrape.com/catalogue/page-1.html"
-    print(f"Starting scrape of {target_url}...")
+    # We'll scrape the first 3 pages to start
+    base_url = "http://books.toscrape.com/catalogue/page-{}.html"
+    all_scraped_data = []
 
-    html = fetch_page(target_url)
+    print("--- Starting Multi-Page Scrape ---")
 
-    if html:
-        data = parse_book(html)
+    for page_num in range(1, 4):
+        url = base_url.format(page_num)
+        print(f"Scraping Page {page_num}...")
+        
+        html = fetch_page(url)
+        if html:
+            page_data = parse_book(html)
+            all_scraped_data.extend(page_data)
+            
+            # --- BAN EVASION: Politeness Delay ---
+            # Wait between 1 and 3 seconds before the next page
+            wait_time = random.uniform(1, 3)
+            print(f"Waiting {wait_time:.2f} seconds to be polite...")
+            time.sleep(wait_time)
 
+    if all_scraped_data:
+        # Save to JSON
         timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M")
-        output_file = f"data/raw/scrape_{timestamp}.json"
-
+        output_file = f"data/raw/multi_scrape_{timestamp}.json"
         with open(output_file, 'w') as f:
-            json.dump(data, f, indent=4)
-
-        print(f"Successfully scraped {len(data)} items. Data saved to {output_file}")
+            json.dump(all_scraped_data, f, indent=4)
+            
+        # Save to Database
+        save_to_db(all_scraped_data)
+        
+        print(f"\nSUCCESS: Scraped a total of {len(all_scraped_data)} books.")
+        print(f"Data saved to {output_file} and database.db")
     
 if __name__ == "__main__":
     main()
